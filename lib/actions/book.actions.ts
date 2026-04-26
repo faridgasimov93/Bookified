@@ -85,7 +85,7 @@ export const createBook = async (data: CreateBook) => {
 
 export const saveBookSegments = async (
   bookId: string,
-  clearId: string,
+  clerkId: string,
   segments: TextSegment[],
 ) => {
   try {
@@ -94,7 +94,7 @@ export const saveBookSegments = async (
 
     const segmentsToInsert = segments.map(
       ({ text, segmentIndex, pageNumber, wordCount }) => ({
-        clearId,
+        clerkId,
         bookId,
         content: text,
         segmentIndex,
