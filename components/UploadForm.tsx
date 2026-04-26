@@ -13,18 +13,18 @@ import { ACCEPTED_PDF_TYPES, ACCEPTED_IMAGE_TYPES, DEFAULT_VOICE } from '@/lib/c
 import FileUploader from './FileUploader';
 import VoiceSelector from './VoiceSelector';
 import LoadingOverlay from './LoadingOverlay';
-// import {useAuth, useUser} from "@clerk/nextjs";
-// import { toast } from 'sonner';
-// import {checkBookExists, createBook, saveBookSegments} from "@/lib/actions/book.actions";
-// import {useRouter} from "next/navigation";
-// import {parsePDFFile} from "@/lib/utils";
-// import {upload} from "@vercel/blob/client";
+import { useAuth } from "@clerk/nextjs";
+import { toast } from 'sonner';
+import { checkBookExists, createBook, saveBookSegments } from "@/lib/actions/book.actions";
+import { useRouter } from "next/navigation";
+import { parsePDFFile } from "@/lib/utils";
+import { upload } from "@vercel/blob/client";
 
 const UploadForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  // const { userId } = useAuth();
-  // const router = useRouter()
+  const { userId } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     setIsMounted(true);
@@ -42,7 +42,7 @@ const UploadForm = () => {
   });
 
   const onSubmit = async (data: BookUploadFormValues) => {
-    if(!userId) {
+    if (!userId) {
       return toast.error("Please login to upload books");
     }
 
@@ -53,32 +53,29 @@ const UploadForm = () => {
     try {
       const existsCheck = await checkBookExists(data.title);
 
-      if(existsCheck.exists && existsCheck.book) {
+      if (existsCheck.exists && existsCheck.book) {
         toast.info("Book with same title already exists.");
-        form.reset()
-        router.push(`/books/${existsCheck.book.slug}`)
+        form.reset();
+        router.push(`/books/${existsCheck.book.slug}`);
         return;
       }
 
       const fileTitle = data.title.replace(/\s+/g, '-').toLowerCase();
       const pdfFile = data.pdfFile;
-
       const parsedPDF = await parsePDFFile(pdfFile);
 
-      if(parsedPDF.content.length === 0) {
+      if (parsedPDF.content.length === 0) {
         toast.error("Failed to parse PDF. Please try again with a different file.");
         return;
       }
-
       const uploadedPdfBlob = await upload(fileTitle, pdfFile, {
         access: 'public',
         handleUploadUrl: '/api/upload',
         contentType: 'application/pdf'
       });
 
-      let coverUrl: string;
-
-      if(data.coverImage) {
+      let coverUrl: string
+      if (data.coverImage) {
         const coverFile = data.coverImage;
         const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, coverFile, {
           access: 'public',
@@ -86,10 +83,10 @@ const UploadForm = () => {
           contentType: coverFile.type
         });
         coverUrl = uploadedCoverBlob.url;
-      } else {
-        const response = await fetch(parsedPDF.cover)
+      }
+      else {
+        const response = await fetch(parsedPDF.cover);
         const blob = await response.blob();
-
         const uploadedCoverBlob = await upload(`${fileTitle}_cover.png`, blob, {
           access: 'public',
           handleUploadUrl: '/api/upload',
@@ -97,7 +94,6 @@ const UploadForm = () => {
         });
         coverUrl = uploadedCoverBlob.url;
       }
-
       const book = await createBook({
         clerkId: userId,
         title: data.title,
@@ -111,9 +107,9 @@ const UploadForm = () => {
 
       if(!book.success) {
         toast.error(book.error as string || "Failed to create book");
-        if (book.isBillingError) {
-          router.push("/subscriptions");
-        }
+        // if (book.isBillingError) {
+        //   router.push("/subscriptions");
+        // }
         return;
       }
 
@@ -123,7 +119,6 @@ const UploadForm = () => {
         router.push(`/books/${book.data.slug}`)
         return;
       }
-
       const segments = await saveBookSegments(book.data._id, userId, parsedPDF.content);
 
       if(!segments.success) {
@@ -150,7 +145,10 @@ const UploadForm = () => {
 
       <div className="new-book-wrapper">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-8"
+          >
             {/* 1. PDF File Upload */}
             <FileUploader
               control={form.control}
@@ -235,7 +233,11 @@ const UploadForm = () => {
             />
 
             {/* 6. Submit Button */}
-            <Button type="submit" className="form-btn" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              className="form-btn"
+              disabled={isSubmitting}
+            >
               Begin Synthesis
             </Button>
           </form>
